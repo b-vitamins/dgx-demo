@@ -1,0 +1,22 @@
+# Modern, easy mode: base image already has PyTorch + CUDA + cuDNN.
+# If this tag doesn't exist on your cluster, swap it for a nearby pytorch/pytorch tag with cuda11.x.
+FROM pytorch/pytorch:2.1.2-cuda11.8-cudnn8-runtime
+
+ARG UID=1000
+ARG GID=1000
+ARG USERNAME=dgxuser
+
+# Minimal OS deps + a real user matching the host UID/GID (permission sanity).
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends git ca-certificates bash; \
+    rm -rf /var/lib/apt/lists/*; \
+    if ! getent group ${GID} >/dev/null; then groupadd -g ${GID} ${USERNAME}; fi; \
+    if ! id -u ${USERNAME} >/dev/null 2>&1; then useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USERNAME}; fi
+
+WORKDIR /workspace
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+USER ${USERNAME}
+ENV PYTHONUNBUFFERED=1
