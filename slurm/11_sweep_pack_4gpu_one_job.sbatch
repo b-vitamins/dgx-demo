@@ -14,12 +14,16 @@ set -euo pipefail
 
 USER_NAME="${USER}"
 SCRATCH="/localscratch/${USER_NAME}"
-PROJ="${SCRATCH}/dgx-demo"
-RUNS="${PROJ}/runs"
+SCRATCH_CONT="/workspace${SCRATCH}"
+PROJ_HOST="${SCRATCH}/dgx-demo"
+PROJ_CONT="${SCRATCH_CONT}/dgx-demo"
+RUNS_HOST="${PROJ_HOST}/runs"
+RUNS_CONT="${PROJ_CONT}/runs"
 IMAGE="${USER_NAME}/dgx-demo:torch"
 
-OUTROOT="${RUNS}/sweep_pack_${SLURM_JOB_ID}"
-mkdir -p "${OUTROOT}"
+OUTROOT_HOST="${RUNS_HOST}/sweep_pack_${SLURM_JOB_ID}"
+OUTROOT_CONT="${RUNS_CONT}/sweep_pack_${SLURM_JOB_ID}"
+mkdir -p "${OUTROOT_HOST}"
 
 echo "[slurm] JobID=$SLURM_JOB_ID Node=$(hostname) AllocGPUs=$CUDA_VISIBLE_DEVICES"
 date
@@ -31,12 +35,13 @@ export PYTHONUNBUFFERED=1
 
 # One container, 4 concurrent 1-GPU trials. We also forward SLURM signals to all child processes.
 docker run --rm \
-  --gpus "device=${CUDA_VISIBLE_DEVICES}" \
+  -t --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
+  --name "${SLURM_JOB_ID}" \
   --ipc=host --shm-size=40G \
   --ulimit memlock=-1 --ulimit stack=67108864 \
   --user "$(id -u ${USER_NAME}):$(id -g ${USER_NAME})" \
-  -v "${SCRATCH}:${SCRATCH}" \
-  -w "${PROJ}" \
+  -v "${SCRATCH}:${SCRATCH_CONT}" \
+  -w "${PROJ_CONT}" \
   -e "OMP_NUM_THREADS=${OMP_NUM_THREADS}" \
   -e "MKL_NUM_THREADS=${MKL_NUM_THREADS}" \
   -e "NCCL_DEBUG=${NCCL_DEBUG}" \
@@ -77,7 +82,7 @@ for i in 0 1 2 3; do
   echo "[container] launching trial $i on GPU $i"
   CUDA_VISIBLE_DEVICES=$i python -m src.sweep \
     --trial_id $((100 + i)) \
-    --outroot "'"${OUTROOT}"'" \
+    --outroot "'"${OUTROOT_CONT}"'" \
     --max_steps 3000 \
     --batch_size 256 \
     --dataset_size 200000 \

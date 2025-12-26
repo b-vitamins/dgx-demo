@@ -14,12 +14,16 @@ set -euo pipefail
 
 USER_NAME="${USER}"
 SCRATCH="/localscratch/${USER_NAME}"
-PROJ="${SCRATCH}/dgx-demo"
-RUNS="${PROJ}/runs"
+SCRATCH_CONT="/workspace${SCRATCH}"
+PROJ_HOST="${SCRATCH}/dgx-demo"
+PROJ_CONT="${SCRATCH_CONT}/dgx-demo"
+RUNS_HOST="${PROJ_HOST}/runs"
+RUNS_CONT="${PROJ_CONT}/runs"
 IMAGE="${USER_NAME}/dgx-demo:torch"
 
-OUTDIR="${RUNS}/${SLURM_JOB_ID}"
-mkdir -p "${OUTDIR}"
+OUTDIR_HOST="${RUNS_HOST}/${SLURM_JOB_ID}"
+OUTDIR_CONT="${RUNS_CONT}/${SLURM_JOB_ID}"
+mkdir -p "${OUTDIR_HOST}"
 
 echo "[slurm] JobID=$SLURM_JOB_ID Node=$(hostname) GPUs=$CUDA_VISIBLE_DEVICES"
 date
@@ -32,12 +36,13 @@ export PYTHONUNBUFFERED=1
 # We wrap torchrun so the container PID1 can catch SLURM signals and forward them
 # to the torchrun process group (and therefore to all worker processes).
 docker run --rm \
-  --gpus "device=${CUDA_VISIBLE_DEVICES}" \
+  -t --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
+  --name "${SLURM_JOB_ID}" \
   --ipc=host --shm-size=40G \
   --ulimit memlock=-1 --ulimit stack=67108864 \
   --user "$(id -u ${USER_NAME}):$(id -g ${USER_NAME})" \
-  -v "${SCRATCH}:${SCRATCH}" \
-  -w "${PROJ}" \
+  -v "${SCRATCH}:${SCRATCH_CONT}" \
+  -w "${PROJ_CONT}" \
   -e "OMP_NUM_THREADS=${OMP_NUM_THREADS}" \
   -e "MKL_NUM_THREADS=${MKL_NUM_THREADS}" \
   -e "NCCL_DEBUG=${NCCL_DEBUG}" \
@@ -48,7 +53,7 @@ set -euo pipefail
 
 echo "[container] starting torchrun DDP"
 torchrun --standalone --nproc_per_node=4 -m src.train \
-  --outdir "'"${OUTDIR}"'" \
+  --outdir "'"${OUTDIR_CONT}"'" \
   --run_name hello_ddp4 \
   --max_steps 200000 \
   --batch_size 128 \

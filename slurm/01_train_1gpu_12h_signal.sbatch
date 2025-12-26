@@ -14,11 +14,14 @@ set -euo pipefail
 
 USER_NAME="${USER}"
 SCRATCH="/localscratch/${USER_NAME}"
-PROJ="${SCRATCH}/dgx-demo"
-RUNS="${PROJ}/runs"
+SCRATCH_CONT="/workspace${SCRATCH}"
+PROJ_HOST="${SCRATCH}/dgx-demo"
+PROJ_CONT="${SCRATCH_CONT}/dgx-demo"
+RUNS_HOST="${PROJ_HOST}/runs"
+RUNS_CONT="${PROJ_CONT}/runs"
 IMAGE="${USER_NAME}/dgx-demo:torch"
 
-mkdir -p "${RUNS}"
+mkdir -p "${RUNS_HOST}"
 
 echo "[slurm] JobID=$SLURM_JOB_ID Node=$(hostname) GPUs=$CUDA_VISIBLE_DEVICES"
 date
@@ -29,20 +32,21 @@ export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
 export NCCL_DEBUG=warn
 export PYTHONUNBUFFERED=1
 
-docker run --rm \
-  --gpus "device=${CUDA_VISIBLE_DEVICES}" \
+docker run -t --rm \
+  --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
+  --name "${SLURM_JOB_ID}" \
   --ipc=host --shm-size=20G \
   --ulimit memlock=-1 --ulimit stack=67108864 \
   --user "$(id -u ${USER_NAME}):$(id -g ${USER_NAME})" \
-  -v "${SCRATCH}:${SCRATCH}" \
-  -w "${PROJ}" \
+  -v "${SCRATCH}:${SCRATCH_CONT}" \
+  -w "${PROJ_CONT}" \
   -e "OMP_NUM_THREADS=${OMP_NUM_THREADS}" \
   -e "MKL_NUM_THREADS=${MKL_NUM_THREADS}" \
   -e "NCCL_DEBUG=${NCCL_DEBUG}" \
   -e "PYTHONUNBUFFERED=1" \
   "${IMAGE}" \
   bash -lc "exec python -m src.train \
-      --outdir ${RUNS}/${SLURM_JOB_ID} \
+      --outdir ${RUNS_CONT}/${SLURM_JOB_ID} \
       --run_name hello_1gpu \
       --max_steps 200000 \
       --batch_size 256 \

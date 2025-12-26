@@ -13,18 +13,20 @@ set -euo pipefail
 
 USER_NAME="${USER}"
 SCRATCH="/raid/${USER_NAME}"
-PROJ="${SCRATCH}/dgx-demo"
+SCRATCH_CONT="/workspace${SCRATCH}"
+PROJ_HOST="${SCRATCH}/dgx-demo"
+PROJ_CONT="${SCRATCH_CONT}/dgx-demo"
 IMAGE="${USER_NAME}/dgx-demo:torch"
 
 echo "[slurm] JobID=$SLURM_JOB_ID Node=$(hostname) GPUs=$CUDA_VISIBLE_DEVICES"
 date
 
-docker run --rm \
-  --gpus "device=${CUDA_VISIBLE_DEVICES}" \
+docker run -t --rm \
+  --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
+  --name "${SLURM_JOB_ID}" \
   --ipc=host --shm-size=2G \
   --user "$(id -u ${USER_NAME}):$(id -g ${USER_NAME})" \
-  -v "${SCRATCH}:${SCRATCH}" \
-  -w "${PROJ}" \
+  -v "${SCRATCH}:${SCRATCH_CONT}" \
+  -w "${PROJ_CONT}" \
   "${IMAGE}" \
   bash -lc "chmod +x scripts/sanity_check_container.sh && ./scripts/sanity_check_container.sh"
-

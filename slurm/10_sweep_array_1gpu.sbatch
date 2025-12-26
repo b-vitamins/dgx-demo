@@ -15,12 +15,16 @@ set -euo pipefail
 
 USER_NAME="${USER}"
 SCRATCH="/localscratch/${USER_NAME}"
-PROJ="${SCRATCH}/dgx-demo"
-RUNS="${PROJ}/runs"
+SCRATCH_CONT="/workspace${SCRATCH}"
+PROJ_HOST="${SCRATCH}/dgx-demo"
+PROJ_CONT="${SCRATCH_CONT}/dgx-demo"
+RUNS_HOST="${PROJ_HOST}/runs"
+RUNS_CONT="${PROJ_CONT}/runs"
 IMAGE="${USER_NAME}/dgx-demo:torch"
 
-OUTROOT="${RUNS}/sweep_${SLURM_ARRAY_JOB_ID}"
-mkdir -p "${OUTROOT}"
+OUTROOT_HOST="${RUNS_HOST}/sweep_${SLURM_ARRAY_JOB_ID}"
+OUTROOT_CONT="${RUNS_CONT}/sweep_${SLURM_ARRAY_JOB_ID}"
+mkdir -p "${OUTROOT_HOST}"
 
 echo "[slurm] ArrayJobID=$SLURM_ARRAY_JOB_ID TaskID=$SLURM_ARRAY_TASK_ID Node=$(hostname) GPUs=$CUDA_VISIBLE_DEVICES"
 date
@@ -30,13 +34,14 @@ export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-6}"
 export NCCL_DEBUG=warn
 export PYTHONUNBUFFERED=1
 
-docker run --rm \
-  --gpus "device=${CUDA_VISIBLE_DEVICES}" \
+docker run -t --rm \
+  --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
+  --name "${SLURM_JOB_ID}" \
   --ipc=host --shm-size=20G \
   --ulimit memlock=-1 --ulimit stack=67108864 \
   --user "$(id -u ${USER_NAME}):$(id -g ${USER_NAME})" \
-  -v "${SCRATCH}:${SCRATCH}" \
-  -w "${PROJ}" \
+  -v "${SCRATCH}:${SCRATCH_CONT}" \
+  -w "${PROJ_CONT}" \
   -e "OMP_NUM_THREADS=${OMP_NUM_THREADS}" \
   -e "MKL_NUM_THREADS=${MKL_NUM_THREADS}" \
   -e "NCCL_DEBUG=${NCCL_DEBUG}" \
@@ -44,7 +49,7 @@ docker run --rm \
   "${IMAGE}" \
   bash -lc "exec python -m src.sweep \
       --trial_id ${SLURM_ARRAY_TASK_ID} \
-      --outroot ${OUTROOT} \
+      --outroot ${OUTROOT_CONT} \
       --max_steps 3000 \
       --batch_size 256 \
       --dataset_size 200000 \

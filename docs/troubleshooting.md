@@ -78,7 +78,7 @@ cat dgx_test_container_<JOBID>.out
 Things to verify:
 - Your SLURM job actually requested GPUs (`#SBATCH --gres=gpu:<n>`).
 - `CUDA_VISIBLE_DEVICES` is set inside the job (SLURM sets it).
-- Your `docker run` uses `--gpus "device=${CUDA_VISIBLE_DEVICES}"` (this repo’s scripts do).
+- Your `docker run` uses `--gpus '"device='${CUDA_VISIBLE_DEVICES}'"'` (this repo’s scripts do).
 
 ## Permission problems writing checkpoints/results
 
@@ -108,4 +108,3 @@ Scratch is designed to be temporary. Treat it as a cache:
 Templates:
 - `scripts/stage_in_dataset.sh`
 - `scripts/stage_out_results.sh`
-

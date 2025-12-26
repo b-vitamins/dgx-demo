@@ -139,7 +139,7 @@ USER_NAME="${USER}"
 RAID="/raid/${USER_NAME}"
 
 docker run --rm \
-  --gpus "device=${CUDA_VISIBLE_DEVICES}" \
+  --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
   --ipc=host --shm-size=20G \
   --user "$(id -u ${USER_NAME}):$(id -g ${USER_NAME})" \
   -v "${RAID}:${RAID}" \
