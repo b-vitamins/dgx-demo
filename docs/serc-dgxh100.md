@@ -1,6 +1,6 @@
 # IISc SERC DGX-H100 (`dgxh100`) — reference notes
 
-> Last updated: 2025-12-19  
+> Last updated: 2026-01-15  
 > Source: IISc/SERC DGX-H100 usage notes copied into this repo. Policies/queues can change; update this doc if you find drift.
 
 See also:
@@ -16,22 +16,23 @@ See also:
 
 ## What DGX-H100 is (high-level)
 
-DGX H100 is an 8×H100 system designed for large-scale training/inference, with NVLink/NVSwitch providing very high GPU↔GPU bandwidth.
+DGX H100 is an 8×H100 system designed for large-scale training/inference, with NVLink/NVSwitch providing very high GPU↔GPU bandwidth and a large local NVMe data cache (~30 TB raw).
 
 ## Hardware overview (as published)
 
 | Component | DGX H100 |
 |---|---|
 | GPUs | 8 × NVIDIA H100 (640 GB total GPU memory) |
-| CPU | 2 × Intel Xeon Platinum 8480C (56 cores each, 112 cores total) |
-| System memory | 2 TB |
+| CPU | 2 × Intel Xeon 8480C PCIe Gen5 (56 cores each; 2.0/2.9/3.8 GHz base/all-core turbo/max turbo) |
+| System memory | 2 TB (32 DIMMs) |
 | NVLink | 18 NVLink connections per GPU; up to 900 GB/s bidirectional GPU↔GPU bandwidth (published) |
-| NVSwitch | 4 × NVIDIA NVSwitches; 7.2 TB/s bidirectional GPU↔GPU bandwidth (published) |
+| NVSwitch | 4 × 4th-gen NVSwitch; 7.2 TB/s bidirectional GPU↔GPU bandwidth (published) |
 | Storage (OS) | 2 × 1.92 TB NVMe M.2 (RAID-1) |
-| Storage (data cache) | 8 × 3.84 TB NVMe U.2 SED (RAID-0) |
-| Network (cluster) | ConnectX-7 adapters (InfiniBand up to 400 Gbps / Ethernet up to 400 GbE, published) |
-| Network (storage + in-band mgmt) | ConnectX-7 dual-port Ethernet (published) |
+| Storage (data cache) | 8 × 3.84 TB NVMe U.2 SED (RAID-0, ~30 TB raw) |
+| Network (cluster) | 4 × OSFP ports for 8 × ConnectX-7 single-port IB cards; up to 400 Gbps IB / 400 GbE (published) |
+| Network (storage + in-band mgmt) | 2 × ConnectX-7 dual-port Ethernet; 400/200/100/50/40/25/10 GbE + IB up to 400 Gbps (published) |
 | BMC | 1 GbE RJ45 (Redfish/IPMI/SNMP/KVM/Web UI, published) |
+| System management (optional) | Dual-port 100 GbE (slot 3) + 10 GbE RJ45 (published) |
 | Power | 6 × 3.3 kW (published) |
 
 ### Vendors (as published)
