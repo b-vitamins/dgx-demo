@@ -99,7 +99,7 @@ docker image list | grep dgx-demo
 Submit a short test job:
 
 ```bash
-sbatch slurm/00_test_container_1gpu.sbatch
+sbatch slurm/dgx1/00_test_container_1gpu.sbatch
 squeue -u $USER
 ```
 
@@ -118,7 +118,7 @@ If it prints `cuda available: True` and shows a GPU name, the container is ready
 Submit:
 
 ```bash
-sbatch slurm/01_train_1gpu_12h_signal.sbatch
+sbatch slurm/dgx1/01_train_1gpu_12h_signal.sbatch
 ```
 
 What this job demonstrates:
@@ -149,8 +149,8 @@ Submit 3 chained segments:
 
 ```bash
 cd /localscratch/$USER/dgx-demo
-chmod +x slurm/chain_submit.sh
-./slurm/chain_submit.sh my_long_run 3
+chmod +x slurm/dgx1/chain_submit.sh
+./slurm/dgx1/chain_submit.sh my_long_run 3
 ```
 
 All segments write to the same run directory:
@@ -166,7 +166,7 @@ All segments write to the same run directory:
 This uses a 4-GPU DGX-1 partition and launches DDP with `torchrun`:
 
 ```bash
-sbatch slurm/03_train_4gpu_ddp_12h_signal.sbatch
+sbatch slurm/dgx1/03_train_4gpu_ddp_12h_signal.sbatch
 ```
 
 Notes:
@@ -183,7 +183,7 @@ If you are on DGX-H100, check available partitions with `sinfo` and adapt the `#
 ### 6A) SLURM job array (1 GPU per trial)
 
 ```bash
-sbatch slurm/10_sweep_array_1gpu.sbatch
+sbatch slurm/dgx1/10_sweep_array_1gpu.sbatch
 ```
 
 It submits 32 tasks and caps concurrency (`%4`).
@@ -203,7 +203,7 @@ docker run --rm \
 ### 6B) Pack multiple 1-GPU trials into one 4-GPU job
 
 ```bash
-sbatch slurm/11_sweep_pack_4gpu_one_job.sbatch
+sbatch slurm/dgx1/11_sweep_pack_4gpu_one_job.sbatch
 ```
 
 This launches 4 trials concurrently, each pinned to a GPU via `CUDA_VISIBLE_DEVICES`.

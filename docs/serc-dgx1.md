@@ -126,7 +126,7 @@ The typical pattern is:
 2. Your `sbatch` script runs `docker run` bound to the SLURM allocation.
 3. You bind-mount your scratch directory into the container and run your code there.
 
-This repo includes working examples under `slurm/*.sbatch`. For a minimal skeleton:
+This repo includes working examples under `slurm/dgx1/*.sbatch`. For a minimal skeleton:
 
 ```bash
 #!/bin/bash

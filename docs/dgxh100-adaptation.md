@@ -1,6 +1,6 @@
 # Running this repo on DGX-H100 (`dgxh100`)
 
-This repo’s `slurm/*.sbatch` scripts are written for DGX-1 conventions (`/localscratch`, DGX-1 partition names). DGX-H100 differs mainly in:
+This repo’s `slurm/dgx1/*.sbatch` scripts are written for DGX-1 conventions (`/localscratch`, DGX-1 partition names). DGX-H100 differs mainly in:
 
 - login host: `dgxh100.serc.iisc.ac.in`
 - scratch path: `/raid/<user>` (not `/localscratch/<user>`)
@@ -42,7 +42,7 @@ This repo’s `slurm/*.sbatch` scripts are written for DGX-1 conventions (`/loca
 
 ## Included DGX-H100 scripts
 
-The `slurm/dgxh100/` folder mirrors the DGX-1 workflows with DGX-H100 paths and partitions:
+The `slurm/dgxh100/` folder mirrors the DGX-1 workflows in `slurm/dgx1/`, with DGX-H100 paths and partitions:
 
 - `00_test_container_1gpu.sbatch`: container sanity check (1 GPU)
 - `01_train_1gpu_12h_signal.sbatch`: 1-GPU training with SIGUSR1 handling (12h)

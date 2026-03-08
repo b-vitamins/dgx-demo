@@ -71,7 +71,7 @@ Common causes:
 Run the provided sanity job and inspect its output:
 
 ```bash
-sbatch slurm/00_test_container_1gpu.sbatch
+sbatch slurm/dgx1/00_test_container_1gpu.sbatch
 cat dgx_test_container_<JOBID>.out
 ```
 
@@ -96,7 +96,7 @@ This repo is designed to handle time limits:
 For long experiments, use the chaining pattern:
 
 ```bash
-./slurm/chain_submit.sh my_long_run 3
+./slurm/dgx1/chain_submit.sh my_long_run 3
 ```
 
 ## I lost data in scratch

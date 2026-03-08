@@ -9,7 +9,7 @@
   - `docs/dgxh100-adaptation.md`: how to run this repo on DGX-H100.
   - `docs/troubleshooting.md`: common failure modes and fixes.
 - `src/`: Python package (training loop, dataset/model, sweep + aggregation).
-- `slurm/`: DGX-1 `sbatch` scripts; DGX-H100 variants live in `slurm/dgxh100/`.
+- `slurm/dgx1/`, `slurm/dgxh100/`: cluster-specific `sbatch` scripts.
 - `scripts/`: helper scripts for sanity checks and stage-in/out.
 - `configs/`: sweep grid definitions (e.g., `configs/grid.json`).
 
@@ -19,7 +19,7 @@
   `docker build -f Dockerfile.modern --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg USERNAME=$USER -t $USER/dgx-demo:torch .`
 - Basic Python sanity (no GPU required):  
   `python3 -m py_compile src/*.py`
-- Cluster smoke test (DGX-1): `sbatch slurm/00_test_container_1gpu.sbatch`  
+- Cluster smoke test (DGX-1): `sbatch slurm/dgx1/00_test_container_1gpu.sbatch`  
   Cluster smoke test (DGX-H100): `sbatch slurm/dgxh100/00_test_container_1gpu.sbatch`
 
 ## Coding Style & Naming Conventions

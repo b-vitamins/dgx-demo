@@ -30,6 +30,7 @@ Jobs on IISc SERC DGX clusters follow this model:
 
 The step-by-step commands in this README use **DGX-1** defaults (`nvidia-dgx`, `/localscratch`). If you are running on **DGX-H100** (`dgxh100`, `/raid`), start with:
 - [`docs/dgxh100-adaptation.md`](docs/dgxh100-adaptation.md)
+- `slurm/dgx1/` (DGX-1 scripts)
 - `slurm/dgxh100/` (adapted example `sbatch` scripts)
 
 ---
@@ -39,7 +40,8 @@ The step-by-step commands in this README use **DGX-1** defaults (`nvidia-dgx`, `
 - `Dockerfile.compat` : older CUDA 11.0.3 base + older PyTorch wheels (use if needed)
 - `src/train.py` : training loop + checkpointing + SIGUSR1/SIGTERM handling + optional DDP via torchrun
 - `src/sweep.py` : simple grid runner reading `configs/grid.json`
-- `slurm/*.sbatch` : job scripts (1 GPU, DDP 4 GPU, arrays, packed sweeps, chaining)
+- `slurm/dgx1/` : DGX-1 job scripts
+- `slurm/dgxh100/` : DGX-H100 job scripts
 - `scripts/` : small helper scripts
 
 ## Cluster reference docs
@@ -106,7 +108,7 @@ docker image list | grep dgx-demo
 ## 2) Sanity-check the container on a GPU (via SLURM)
 ```bash
 cd /localscratch/$USER/dgx-demo
-sbatch slurm/00_test_container_1gpu.sbatch
+sbatch slurm/dgx1/00_test_container_1gpu.sbatch
 squeue -u $USER
 ```
 
@@ -124,7 +126,7 @@ This uses:
 - training code catches SIGUSR1/SIGTERM, checkpoints `ckpt_last.pt`, and exits
 
 ```bash
-sbatch slurm/01_train_1gpu_12h_signal.sbatch
+sbatch slurm/dgx1/01_train_1gpu_12h_signal.sbatch
 ```
 
 Outputs go here:
@@ -139,8 +141,8 @@ Submit 3 chained segments of 12 hours each (total 36h possible runtime), all res
 
 ```bash
 cd /localscratch/$USER/dgx-demo
-chmod +x slurm/chain_submit.sh
-./slurm/chain_submit.sh my_long_run 3
+chmod +x slurm/dgx1/chain_submit.sh
+./slurm/dgx1/chain_submit.sh my_long_run 3
 ```
 
 Check progress:
@@ -153,7 +155,7 @@ ls -R /localscratch/$USER/dgx-demo/runs/my_long_run/checkpoints
 
 ## 5) Multi-GPU DDP demo (4 GPUs)
 ```bash
-sbatch slurm/03_train_4gpu_ddp_12h_signal.sbatch
+sbatch slurm/dgx1/03_train_4gpu_ddp_12h_signal.sbatch
 ```
 
 This uses:
@@ -166,13 +168,13 @@ This uses:
 ## 6) Hyperparameter sweeps
 ### 6A) SLURM job array (1 GPU per trial)
 ```bash
-sbatch slurm/10_sweep_array_1gpu.sbatch
+sbatch slurm/dgx1/10_sweep_array_1gpu.sbatch
 ```
 It submits 32 tasks and runs at most 4 concurrently (`%4`).
 
 ### 6B) Pack 4 trials into one 4-GPU job
 ```bash
-sbatch slurm/11_sweep_pack_4gpu_one_job.sbatch
+sbatch slurm/dgx1/11_sweep_pack_4gpu_one_job.sbatch
 ```
 It launches 4 independent trials in parallel inside a single container, pinned to GPUs 0..3.
 
