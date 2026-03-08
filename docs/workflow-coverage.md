@@ -12,6 +12,7 @@ This repo is a cluster-orientation and boilerplate kit for IISc/SERC DGX systems
 - Hyperparameter sweeps: SLURM arrays (`10_*`) and packed trials inside one multi-GPU allocation (`11_*`)
 - Single-node evaluation and batch inference: `src.eval` and `slurm/*/20_eval_1gpu.sbatch`
 - Real dataset training with a simple image-folder layout: `src.data`, `slurm/*/21_train_imagefolder_1gpu.sbatch`, and `docs/real-dataset-template.md`
+- Short profiling and throughput checks: `src.profile_train`, `slurm/*/30_profile_1gpu.sbatch`, and `docs/performance-checklist.md`
 - Scratch data flow: `scripts/stage_in_dataset.sh` and `scripts/stage_out_results.sh`
 - Cluster-specific container builds: `Dockerfile.modern`, `Dockerfile.compat`, and `Dockerfile.dgxh100`
 

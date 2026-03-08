@@ -8,6 +8,7 @@ This walkthrough is written for DGX-1 (`nvidia-dgx`) by default. If you are usin
 - [`docs/dgxh100-adaptation.md`](docs/dgxh100-adaptation.md) (how to adapt this repo, including `slurm/dgxh100/` examples)
 - [`docs/workflow-coverage.md`](docs/workflow-coverage.md) (what this repo covers and what it does not)
 - [`docs/ddp-vs-fsdp.md`](docs/ddp-vs-fsdp.md) (when to use each single-node distributed pattern)
+- [`docs/performance-checklist.md`](docs/performance-checklist.md) (how to profile dataloading and step throughput)
 
 ---
 
@@ -27,7 +28,9 @@ This walkthrough is written for DGX-1 (`nvidia-dgx`) by default. If you are usin
    - container sanity test
    - 1-GPU training with time-limit-safe behavior (Option C)
    - multi-segment continuation using SLURM dependencies (Option B)
-   - 4-GPU single-node DDP training (DGX-1 partitions)
+   - single-node DDP/FSDP training
+   - evaluation / inference batch jobs
+   - short throughput / dataloader profiling
    - hyperparameter sweep via job arrays
    - hyperparameter sweep by packing multiple trials into one multi-GPU allocation
 4. Copy results back to persistent storage (or your laptop) before scratch is purged.
@@ -233,7 +236,23 @@ This launches 4 trials concurrently, each pinned to a GPU via `CUDA_VISIBLE_DEVI
 
 ---
 
-## 7) Data staging (real datasets)
+## 7) Profile throughput before changing random knobs
+
+```bash
+sbatch slurm/dgx1/30_profile_1gpu.sbatch
+```
+
+Start with synthetic data. If that is fast, rerun against your staged dataset:
+
+```bash
+sbatch --export=ALL,DATASET_TYPE=imagefolder,DATA_ROOT=/localscratch/$USER/datasets/mydataset slurm/dgx1/30_profile_1gpu.sbatch
+```
+
+Read [`docs/performance-checklist.md`](docs/performance-checklist.md) alongside `profile_summary.json` before changing `batch_size`, `num_workers`, or blaming NCCL.
+
+---
+
+## 8) Data staging (real datasets)
 
 This demo uses a synthetic dataset by default, but it now includes a simple `imagefolder` path for real classification datasets. For real work:
 
@@ -257,7 +276,7 @@ bash scripts/stage_out_results.sh /localscratch/$USER/dgx-demo/runs /path/to/per
 
 ---
 
-## 8) Copy results back to your laptop
+## 9) Copy results back to your laptop
 
 From your laptop:
 
@@ -273,7 +292,7 @@ rsync -av <YOUR_USER>@nvidia-dgx.serc.iisc.ac.in:/localscratch/<YOUR_USER>/dgx-d
 
 ---
 
-## 9) Backup your Docker image (optional)
+## 10) Backup your Docker image (optional)
 
 If the system clears Docker images, you can export your image and copy it off scratch:
 
@@ -288,4 +307,5 @@ docker save -o /localscratch/$USER/dgx-demo_image.tar $USER/dgx-demo:torch
 - [`docs/README.md`](docs/README.md) (docs index)
 - [`docs/workflow-coverage.md`](docs/workflow-coverage.md) (supported vs unsupported workflows)
 - [`docs/ddp-vs-fsdp.md`](docs/ddp-vs-fsdp.md) (single-node distributed tradeoffs)
+- [`docs/performance-checklist.md`](docs/performance-checklist.md) (profiling and throughput checklist)
 - [`docs/hpc-patterns.md`](docs/hpc-patterns.md) (design rationale)

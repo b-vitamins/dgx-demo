@@ -99,6 +99,9 @@ def set_seeds(seed: int):
     torch.manual_seed(seed)
     np.random.seed(seed % (2**32 - 1))
 
+def amp_device_type() -> str:
+    return "cuda" if torch.cuda.is_available() else "cpu"
+
 def resolve_strategy(requested: str) -> str:
     if requested == "auto":
         return "ddp" if dist_is_active() else "single"
@@ -250,7 +253,10 @@ def main():
         model = FSDP(model, device_id=local_rank, sync_module_states=True, use_orig_params=True)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.wd)
-    scaler = torch.cuda.amp.GradScaler(enabled=cfg.amp and torch.cuda.is_available())
+    scaler = torch.amp.GradScaler(
+        amp_device_type(),
+        enabled=cfg.amp and torch.cuda.is_available(),
+    )
 
     # Resume
     step = 0
@@ -294,10 +300,10 @@ def main():
                 return
 
             xb = xb.to(device, non_blocking=True)
-            yb = torch.tensor(yb, device=device)
+            yb = yb.to(device, non_blocking=True)
 
             optimizer.zero_grad(set_to_none=True)
-            with torch.cuda.amp.autocast(enabled=scaler.is_enabled()):
+            with torch.amp.autocast(device_type=amp_device_type(), enabled=scaler.is_enabled()):
                 logits = model(xb)
                 loss = torch.nn.functional.cross_entropy(logits, yb)
 

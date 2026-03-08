@@ -27,8 +27,9 @@ Jobs on IISc SERC DGX clusters follow this model:
 3. Read [`INSTRUCTIONS.md`](INSTRUCTIONS.md) for the full end-to-end walkthrough (DDP, sweeps, data staging, backups).
 4. Check [`docs/workflow-coverage.md`](docs/workflow-coverage.md) to see what the repo covers and where it stops.
 5. Read [`docs/ddp-vs-fsdp.md`](docs/ddp-vs-fsdp.md) before choosing a multi-GPU path.
-6. Skim [`docs/hpc-patterns.md`](docs/hpc-patterns.md) for the reasoning behind the patterns used here.
-7. If something fails, start with [`docs/troubleshooting.md`](docs/troubleshooting.md).
+6. Use [`docs/performance-checklist.md`](docs/performance-checklist.md) when a run is slower than expected.
+7. Skim [`docs/hpc-patterns.md`](docs/hpc-patterns.md) for the reasoning behind the patterns used here.
+8. If something fails, start with [`docs/troubleshooting.md`](docs/troubleshooting.md).
 
 ## Non-negotiable policies (SERC)
 - Run compute via **SLURM only** (jobs run outside SLURM may lead to account action).
@@ -47,7 +48,9 @@ The step-by-step commands in this README use **DGX-1** defaults (`nvidia-dgx`, `
 - `Dockerfile.modern` : recommended base (pytorch/pytorch + cuda11.8)
 - `Dockerfile.dgxh100` : DGX-H100 build path (published CUDA 12.2 base + PyTorch CUDA wheels)
 - `Dockerfile.compat` : older CUDA 11.0.3 base + older PyTorch wheels (use if needed)
-- `src/train.py` : training loop + checkpointing + SIGUSR1/SIGTERM handling + optional DDP via torchrun
+- `src/train.py` : training loop + checkpointing + SIGUSR1/SIGTERM handling + optional DDP/FSDP
+- `src/eval.py` : checkpoint evaluation / batch inference
+- `src/profile_train.py` : short throughput and dataloader profiling entrypoint
 - `src/sweep.py` : simple grid runner reading `configs/grid.json`
 - `slurm/dgx1/` : DGX-1 job scripts
 - `slurm/dgxh100/` : DGX-H100 job scripts
@@ -204,6 +207,19 @@ It submits 32 tasks and runs at most 4 concurrently (`%4`).
 sbatch slurm/dgx1/11_sweep_pack_4gpu_one_job.sbatch
 ```
 It launches 4 independent trials in parallel inside a single container, pinned to GPUs 0..3.
+
+### 6C) Profile throughput before tuning blindly
+```bash
+sbatch slurm/dgx1/30_profile_1gpu.sbatch
+```
+
+Start with synthetic data to isolate framework and hardware behavior, then rerun against a staged real dataset:
+
+```bash
+sbatch --export=ALL,DATASET_TYPE=imagefolder,DATA_ROOT=/localscratch/$USER/datasets/mydataset slurm/dgx1/30_profile_1gpu.sbatch
+```
+
+See [`docs/performance-checklist.md`](docs/performance-checklist.md) for how to read `profile_summary.json`.
 
 ---
 

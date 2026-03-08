@@ -13,8 +13,9 @@ This directory contains the quickstart, walkthrough, cluster reference, and trou
 5. [`docs/ddp-vs-fsdp.md`](ddp-vs-fsdp.md) (single-node distributed tradeoffs)
 6. [`docs/eval-inference.md`](eval-inference.md) (checkpoint scoring template)
 7. [`docs/real-dataset-template.md`](real-dataset-template.md) (image-folder dataset path)
-8. [`docs/hpc-patterns.md`](hpc-patterns.md) (design rationale)
-9. [`docs/troubleshooting.md`](troubleshooting.md) (common failure modes and fixes)
+8. [`docs/performance-checklist.md`](performance-checklist.md) (profiling and throughput checklist)
+9. [`docs/hpc-patterns.md`](hpc-patterns.md) (design rationale)
+10. [`docs/troubleshooting.md`](troubleshooting.md) (common failure modes and fixes)
 
 ## Reference pages
 
@@ -25,5 +26,6 @@ This directory contains the quickstart, walkthrough, cluster reference, and trou
 - [`docs/ddp-vs-fsdp.md`](ddp-vs-fsdp.md): When to use single-node DDP vs single-node FSDP in this repo.
 - [`docs/eval-inference.md`](eval-inference.md): Batch evaluation and prediction template for existing checkpoints.
 - [`docs/real-dataset-template.md`](real-dataset-template.md): Real dataset path using a simple image-folder layout.
+- [`docs/performance-checklist.md`](performance-checklist.md): Short profiling path and how to interpret the results.
 - [`docs/hpc-patterns.md`](hpc-patterns.md): Practical HPC patterns (checkpointing, sweeps, data staging, GPU-hours math).
 - [`docs/troubleshooting.md`](troubleshooting.md): Troubleshooting guide for SLURM + Docker workflows.
