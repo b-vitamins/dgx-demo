@@ -13,6 +13,7 @@ The two folders mirror the same basic workflows where possible:
 - `03_*`: single-node DDP run
 - `04_*`: single-node FSDP run
 - `20_*`: evaluation / inference batch
+- `21_*`: real image-folder dataset training
 - `10_*`: SLURM array sweep
 - `11_*`: packed multi-GPU sweep
 - `chain_submit.sh`: helper for chained runs

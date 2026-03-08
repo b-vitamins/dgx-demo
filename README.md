@@ -224,8 +224,13 @@ On DGX-H100, change the host and scratch path:
 ---
 
 ## 8) Large datasets
-Replace `SyntheticImageDataset` with your real dataset class.
-Then choose one of these patterns:
+For standard class-folder datasets, you can now use the built-in image-folder path with:
+
+```bash
+sbatch --export=ALL,DATA_ROOT=/localscratch/$USER/datasets/mydataset slurm/dgx1/21_train_imagefolder_1gpu.sbatch
+```
+
+If your data format is more specialized, use the image-folder path as the first template and replace the loader later. Then choose one of these storage patterns:
 
 ### A) Stage-in to scratch (when it fits in scratch)
 - Canonical dataset on persistent storage
@@ -236,6 +241,7 @@ Then choose one of these patterns:
 Templates:
 - `scripts/stage_in_dataset.sh`
 - `scripts/stage_out_results.sh`
+- `docs/real-dataset-template.md`
 
 Both scripts accept explicit source/destination arguments; their defaults try to pick the right scratch root.
 

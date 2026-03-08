@@ -235,7 +235,13 @@ This launches 4 trials concurrently, each pinned to a GPU via `CUDA_VISIBLE_DEVI
 
 ## 7) Data staging (real datasets)
 
-This demo uses a synthetic dataset (no downloads). For real work:
+This demo uses a synthetic dataset by default, but it now includes a simple `imagefolder` path for real classification datasets. For real work:
+
+```bash
+sbatch --export=ALL,DATA_ROOT=/localscratch/$USER/datasets/mydataset slurm/dgx1/21_train_imagefolder_1gpu.sbatch
+```
+
+If your dataset layout is more specialized than class folders, treat that path as the first template and replace the loader later.
 
 ### Stage-in to scratch (best if it fits)
 

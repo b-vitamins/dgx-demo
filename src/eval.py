@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from .data import SyntheticImageDataset
+from .data import build_dataset
 from .models import TinyCNN
 from .utils import append_jsonl, atomic_write_json, ensure_dir, now_iso
 
@@ -21,6 +21,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--outdir", required=True)
+    parser.add_argument("--dataset_type", default=None, choices=["synthetic", "imagefolder"])
+    parser.add_argument("--data_root", default="")
     parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--dataset_size", type=int, default=None)
     parser.add_argument("--image_size", type=int, default=None)
@@ -35,6 +37,8 @@ def main():
     ckpt = torch.load(ckpt_path, map_location="cpu")
     train_cfg = ckpt.get("cfg", {})
 
+    dataset_type = args.dataset_type or train_cfg.get("dataset_type", "synthetic")
+    data_root = args.data_root or train_cfg.get("data_root", "")
     image_size = args.image_size or int(train_cfg.get("image_size", 32))
     num_classes = args.num_classes or int(train_cfg.get("num_classes", 10))
     dataset_size = args.dataset_size or int(train_cfg.get("dataset_size", 50_000))
@@ -48,12 +52,15 @@ def main():
     predictions_path = outdir / "predictions.jsonl"
     summary_path = outdir / "eval_summary.json"
 
-    dataset = SyntheticImageDataset(
-        size=dataset_size,
+    dataset, resolved_num_classes = build_dataset(
+        dataset_type=dataset_type,
+        data_root=data_root,
+        dataset_size=dataset_size,
         image_size=image_size,
         num_classes=num_classes,
         seed=seed,
     )
+    dataset_size = len(dataset)
     loader = DataLoader(
         dataset,
         batch_size=args.batch_size,
@@ -64,7 +71,7 @@ def main():
         drop_last=False,
     )
 
-    model = TinyCNN(num_classes=num_classes, dropout=dropout).to(device)
+    model = TinyCNN(num_classes=resolved_num_classes, dropout=dropout).to(device)
     model.load_state_dict(normalize_state_dict_keys(ckpt["model"]))
     model.eval()
 
@@ -115,6 +122,8 @@ def main():
         "time": now_iso(),
         "checkpoint": str(ckpt_path),
         "outdir": str(outdir),
+        "dataset_type": dataset_type,
+        "data_root": data_root,
         "dataset_size": dataset_size,
         "num_examples": total_examples,
         "avg_loss": avg_loss,

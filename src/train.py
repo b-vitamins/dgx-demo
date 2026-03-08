@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
-from .data import SyntheticImageDataset
+from .data import build_dataset
 from .models import TinyCNN
 from .utils import ensure_dir, now_iso, append_jsonl, atomic_write_json, find_latest_checkpoint
 
@@ -78,6 +78,8 @@ class TrainConfig:
     outdir: str
     run_name: str
     strategy: str
+    dataset_type: str
+    data_root: str
     max_steps: int
     batch_size: int
     lr: float
@@ -169,6 +171,8 @@ def main():
     parser.add_argument("--outdir", required=True)
     parser.add_argument("--run_name", default="demo")
     parser.add_argument("--strategy", default="auto", choices=["auto", "single", "ddp", "fsdp"])
+    parser.add_argument("--dataset_type", default="synthetic", choices=["synthetic", "imagefolder"])
+    parser.add_argument("--data_root", default="")
     parser.add_argument("--max_steps", type=int, default=2000)
     parser.add_argument("--batch_size", type=int, default=256, help="Per-process batch size (DDP global batch = batch_size * world_size).")
     parser.add_argument("--lr", type=float, default=1e-3)
@@ -207,13 +211,23 @@ def main():
     metrics_path = outdir / "metrics.jsonl"
     summary_path = outdir / "summary.json"
 
-    if is_main_process():
-        atomic_write_json(outdir / "config.json", asdict(cfg))
-
     set_seeds(cfg.seed)
 
     # Dataset & loader
-    dataset = SyntheticImageDataset(size=cfg.dataset_size, image_size=cfg.image_size, num_classes=cfg.num_classes, seed=cfg.seed)
+    dataset, resolved_num_classes = build_dataset(
+        dataset_type=cfg.dataset_type,
+        data_root=cfg.data_root,
+        dataset_size=cfg.dataset_size,
+        image_size=cfg.image_size,
+        num_classes=cfg.num_classes,
+        seed=cfg.seed,
+    )
+    cfg.num_classes = resolved_num_classes
+    cfg.dataset_size = len(dataset)
+
+    if is_main_process():
+        atomic_write_json(outdir / "config.json", asdict(cfg))
+
     sampler = DistributedSampler(dataset, num_replicas=world, rank=rank, shuffle=True) if dist_is_active() else None
     loader = DataLoader(
         dataset,
@@ -225,9 +239,11 @@ def main():
         persistent_workers=(cfg.num_workers > 0),
         drop_last=True,
     )
+    if len(loader) == 0:
+        raise ValueError("DataLoader has zero batches. Reduce --batch_size or provide more data.")
 
     # Model
-    model = TinyCNN(num_classes=cfg.num_classes, dropout=cfg.dropout).to(device)
+    model = TinyCNN(num_classes=resolved_num_classes, dropout=cfg.dropout).to(device)
     if strategy == "ddp":
         model = DDP(model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=False)
     elif strategy == "fsdp":
@@ -298,6 +314,7 @@ def main():
                     "step": step,
                     "epoch": epoch,
                     "loss": float(loss.detach().cpu().item()),
+                    "dataset_type": cfg.dataset_type,
                     "strategy": strategy,
                     "world_size": world,
                     "global_batch": cfg.batch_size * world,
@@ -326,6 +343,7 @@ def main():
             "final_step": step,
             "final_epoch": epoch,
             "outdir": str(outdir),
+            "dataset_type": cfg.dataset_type,
             "strategy": strategy,
             "world_size": world,
         })
