@@ -1,13 +1,13 @@
-# IISc SERC DGX starter kit (hello-world training, real HPC behavior)
+# IISc SERC DGX training workflow
 
-This project is intentionally small in *ML complexity* and heavy on *HPC correctness*:
+This project keeps the ML workload simple and focuses on the operational patterns needed to run reliably on IISc SERC DGX clusters:
 - SLURM wall-clock time limits
 - clean shutdown via signal handling + checkpointing (Option C)
 - chained multi-segment runs via SLURM dependencies (Option B)
 - single-GPU, multi-GPU DDP, and hyperparameter sweeps
 - realistic data handling patterns (stage-in/out)
 
-You run on IISc SERC DGX clusters like this:
+Jobs on IISc SERC DGX clusters follow this model:
 - **SLURM allocates resources** (GPUs/CPU/RAM/time)
 - **Docker provides your environment**
 - **Your code lives on fast scratch** (`/localscratch` on DGX-1, `/raid` on DGX-H100) which is purged periodically, so you copy results off-node
@@ -103,7 +103,7 @@ docker image list | grep dgx-demo
 
 ---
 
-## 2) Sanity-check the container on a GPU (SLURM, not freestyle)
+## 2) Sanity-check the container on a GPU (via SLURM)
 ```bash
 cd /localscratch/$USER/dgx-demo
 sbatch slurm/00_test_container_1gpu.sbatch
@@ -159,18 +159,18 @@ sbatch slurm/03_train_4gpu_ddp_12h_signal.sbatch
 This uses:
 - `torchrun --standalone --nproc_per_node=4`
 - DDP + DistributedSampler
-- main-rank-only checkpoint writing + barriers
+- rank-0 checkpoint writing with synchronization barriers
 
 ---
 
 ## 6) Hyperparameter sweeps
-### 6A) Cleanest: SLURM job array (1 GPU per trial)
+### 6A) SLURM job array (1 GPU per trial)
 ```bash
 sbatch slurm/10_sweep_array_1gpu.sbatch
 ```
 It submits 32 tasks and runs at most 4 concurrently (`%4`).
 
-### 6B) Fast if queue overhead is high: pack 4 trials into one 4-GPU job
+### 6B) Pack 4 trials into one 4-GPU job
 ```bash
 sbatch slurm/11_sweep_pack_4gpu_one_job.sbatch
 ```
@@ -194,11 +194,11 @@ On DGX-H100, change the host and scratch path:
 
 ---
 
-## 8) Large real datasets (what changes)
+## 8) Large datasets
 Replace `SyntheticImageDataset` with your real dataset class.
 Then choose one of these patterns:
 
-### A) Stage-in to scratch (best when it fits)
+### A) Stage-in to scratch (when it fits in scratch)
 - Canonical dataset on persistent storage
 - rsync to scratch (`/localscratch/$USER/...` on DGX-1, `/raid/$USER/...` on DGX-H100) at job start
 - train from scratch
@@ -210,10 +210,10 @@ Templates:
 
 Both scripts accept explicit source/destination arguments; their defaults try to pick the right scratch root.
 
-### B) Stream from shared storage (when it doesn't fit)
+### B) Stream from shared storage (when it does not fit)
 - use sharded formats
 - cache hot shards to scratch if possible
-- avoid millions of tiny files on network FS
+- avoid millions of small files on the network filesystem
 
 ---
 
@@ -224,4 +224,4 @@ docker save -o /localscratch/$USER/dgx-demo_image.tar $USER/dgx-demo:torch
 # then rsync/scp that tarball to your long-term storage
 ```
 
-See [`docs/README.md`](docs/README.md) for more docs, and [`docs/hpc-patterns.md`](docs/hpc-patterns.md) for the "why" behind these patterns.
+See [`docs/README.md`](docs/README.md) for the full documentation set and [`docs/hpc-patterns.md`](docs/hpc-patterns.md) for the design rationale behind these patterns.

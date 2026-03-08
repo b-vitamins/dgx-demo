@@ -22,7 +22,7 @@ This repo’s `slurm/*.sbatch` scripts are written for DGX-1 conventions (`/loca
    - Use `Dockerfile.modern`, but consider switching the `FROM pytorch/pytorch:...` tag to a CUDA 12 variant.
    - Keep the UID/GID build args so file permissions work correctly on bind mounts.
 
-4. Check available partitions (don’t guess):
+4. Verify available partitions:
 
    ```bash
    sinfo
@@ -38,6 +38,7 @@ This repo’s `slurm/*.sbatch` scripts are written for DGX-1 conventions (`/loca
 
    ```bash
    sbatch slurm/dgxh100/01_train_1gpu_12h_signal.sbatch
+   ```
 
 ## Included DGX-H100 scripts
 
@@ -53,7 +54,6 @@ The `slurm/dgxh100/` folder mirrors the DGX-1 workflows with DGX-H100 paths and 
 
 Note: DGX-H100 publishes 1-GPU and 2-GPU queues (no 4-GPU queue). Use `sinfo` to confirm
 available partitions and adjust `#SBATCH --partition` as needed.
-   ```
 
 ## What to change if you adapt scripts yourself
 

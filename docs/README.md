@@ -1,6 +1,6 @@
 # Docs
 
-This repo is meant to be a hands-on, self-documented guide for doing serious DL work on IISc/SERC clusters.
+This directory contains the quickstart, walkthrough, cluster reference, and troubleshooting notes for running this repo on IISc/SERC clusters.
 
 ## Recommended reading order
 
@@ -9,7 +9,7 @@ This repo is meant to be a hands-on, self-documented guide for doing serious DL 
 3. Cluster reference (policies, storage, queues):
    - [`docs/serc-dgx1.md`](serc-dgx1.md)
    - [`docs/serc-dgxh100.md`](serc-dgxh100.md)
-4. [`docs/hpc-patterns.md`](hpc-patterns.md) (why these patterns matter)
+4. [`docs/hpc-patterns.md`](hpc-patterns.md) (design rationale)
 5. [`docs/troubleshooting.md`](troubleshooting.md) (common failure modes and fixes)
 
 ## Reference pages

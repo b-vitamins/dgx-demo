@@ -1,4 +1,6 @@
-Here is a complete, end-to-end starter kit for running deep learning jobs on IISc/SERC DGX clusters using SLURM + Docker. The ML workload is intentionally simple so the *cluster mechanics* (SLURM, time limits, checkpointing, DDP, sweeps, and data logistics) are the main focus.
+# End-to-end workflow
+
+This document describes an end-to-end workflow for running deep learning jobs on IISc/SERC DGX clusters using SLURM + Docker. The ML workload is intentionally simple so the *cluster mechanics* (SLURM, time limits, checkpointing, DDP, sweeps, and data logistics) remain the focus.
 
 This walkthrough is written for DGX-1 (`nvidia-dgx`) by default. If you are using DGX-H100 (`dgxh100`), the concepts are the same but the **login host**, **scratch path**, and **partition names** differ; start with:
 - [`docs/serc-dgxh100.md`](docs/serc-dgxh100.md)
@@ -7,7 +9,7 @@ This walkthrough is written for DGX-1 (`nvidia-dgx`) by default. If you are usin
 
 ---
 
-## Ground rules (don’t get your account flagged)
+## Operating rules
 
 - Run compute via **SLURM only** (SERC explicitly warns against running jobs outside SLURM).
 - Work from **scratch** (`/localscratch` on DGX-1, `/raid` on DGX-H100), not your home directory.
@@ -15,7 +17,7 @@ This walkthrough is written for DGX-1 (`nvidia-dgx`) by default. If you are usin
 
 ---
 
-## What you’re building (full lifecycle)
+## Workflow overview
 
 1. Put this project on the cluster scratch filesystem.
 2. Build a Docker image that matches your host UID/GID (avoids permission problems on bind mounts).
@@ -107,7 +109,7 @@ After it finishes:
 cat dgx_test_container_<JOBID>.out
 ```
 
-If it prints `cuda available: True` and shows a GPU name, you’re ready.
+If it prints `cuda available: True` and shows a GPU name, the container is ready for training jobs.
 
 ---
 
@@ -255,4 +257,4 @@ docker save -o /localscratch/$USER/dgx-demo_image.tar $USER/dgx-demo:torch
 ## Next reading
 
 - [`docs/README.md`](docs/README.md) (docs index)
-- [`docs/hpc-patterns.md`](docs/hpc-patterns.md) (why these patterns matter)
+- [`docs/hpc-patterns.md`](docs/hpc-patterns.md) (design rationale)

@@ -19,7 +19,7 @@ If something goes wrong, start by identifying *where* you are running a command.
 - DGX-1: `ssh <user>@nvidia-dgx.serc.iisc.ac.in`
 - DGX-H100: `ssh <user>@dgxh100.serc.iisc.ac.in`
 
-If SSH fails, you may need to be on the IISc network (or whatever access method your group uses). Check with SERC/your lab if you need VPN/jump-host access.
+If SSH fails, you may need to be on the IISc network or use your group’s standard remote-access path. Check with SERC or your lab if you need VPN or jump-host access.
 
 ## `sbatch` / `squeue` not found
 

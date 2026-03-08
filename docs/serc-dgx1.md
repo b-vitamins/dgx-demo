@@ -4,10 +4,10 @@
 > Source: IISc/SERC DGX-1 usage notes copied into this repo. Policies/queues can change; update this doc if you find drift.
 
 See also:
-- [`README.md`](../README.md) (hands-on workflow)
+- [`README.md`](../README.md) (quickstart workflow)
 - [`INSTRUCTIONS.md`](../INSTRUCTIONS.md) (end-to-end walkthrough)
 
-## Critical policies (don’t skip)
+## Critical policies
 
 - **All compute must run via SLURM.** The official guidance states: “Running jobs without SLURM will lead to blocking of the computational account”. Some published job-submission notes also warn that running outside SLURM may be escalated and can result in account blocking.
 - **`/localscratch` is temporary.** Data older than **~14 days (2 weeks)** may be deleted; SERC does not maintain backups.
@@ -216,7 +216,7 @@ RUN usermod -aG sudo $dockerusername
 USER $dockerusername
 ```
 
-### Debugging: exec into a running container (as published)
+### Inspecting a running container (as published)
 
 If you launched a long-running container and want to inspect it:
 

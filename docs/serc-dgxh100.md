@@ -4,11 +4,11 @@
 > Source: IISc/SERC DGX-H100 usage notes copied into this repo. Policies/queues can change; update this doc if you find drift.
 
 See also:
-- [`README.md`](../README.md) (hands-on workflow)
+- [`README.md`](../README.md) (quickstart workflow)
 - [`INSTRUCTIONS.md`](../INSTRUCTIONS.md) (end-to-end walkthrough)
 - [`docs/dgxh100-adaptation.md`](dgxh100-adaptation.md) (how to adapt this repo to DGX-H100)
 
-## Critical policies (don’t skip)
+## Critical policies
 
 - **All compute must run via SLURM.** The official guidance states: “Running jobs without SLURM will lead to blocking of the computational account”. Some published job-submission notes also warn that running outside SLURM may be escalated and can result in account blocking.
 - **`/raid` is temporary.** Data older than **~14 days (2 weeks)** may be deleted; SERC does not maintain backups.
@@ -208,7 +208,7 @@ RUN usermod -aG sudo $dockerusername
 USER $dockerusername
 ```
 
-### Debugging inside a running container (as published)
+### Inspecting a running container (as published)
 
 The published notes mention:
 
