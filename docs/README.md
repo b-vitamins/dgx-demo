@@ -11,8 +11,9 @@ This directory contains the quickstart, walkthrough, cluster reference, and trou
    - [`docs/serc-dgxh100.md`](serc-dgxh100.md)
 4. [`docs/workflow-coverage.md`](workflow-coverage.md) (what this repo covers and where it stops)
 5. [`docs/ddp-vs-fsdp.md`](ddp-vs-fsdp.md) (single-node distributed tradeoffs)
-6. [`docs/hpc-patterns.md`](hpc-patterns.md) (design rationale)
-7. [`docs/troubleshooting.md`](troubleshooting.md) (common failure modes and fixes)
+6. [`docs/eval-inference.md`](eval-inference.md) (checkpoint scoring template)
+7. [`docs/hpc-patterns.md`](hpc-patterns.md) (design rationale)
+8. [`docs/troubleshooting.md`](troubleshooting.md) (common failure modes and fixes)
 
 ## Reference pages
 
@@ -21,5 +22,6 @@ This directory contains the quickstart, walkthrough, cluster reference, and trou
 - [`docs/dgxh100-adaptation.md`](dgxh100-adaptation.md): How to adapt this repo’s DGX-1 scripts to DGX-H100 (`/raid`, partition names, etc).
 - [`docs/workflow-coverage.md`](workflow-coverage.md): Supported workflows, missing workflows, and the repo's intended scope.
 - [`docs/ddp-vs-fsdp.md`](ddp-vs-fsdp.md): When to use single-node DDP vs single-node FSDP in this repo.
+- [`docs/eval-inference.md`](eval-inference.md): Batch evaluation and prediction template for existing checkpoints.
 - [`docs/hpc-patterns.md`](hpc-patterns.md): Practical HPC patterns (checkpointing, sweeps, data staging, GPU-hours math).
 - [`docs/troubleshooting.md`](troubleshooting.md): Troubleshooting guide for SLURM + Docker workflows.
