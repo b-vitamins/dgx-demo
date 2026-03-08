@@ -32,6 +32,12 @@ hostname
 which sbatch
 ```
 
+The quickest repo-specific check is:
+
+```bash
+bash scripts/preflight_cluster.sh
+```
+
 ## Docker permission errors
 
 Symptoms:

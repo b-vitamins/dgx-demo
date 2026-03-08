@@ -42,7 +42,7 @@ The step-by-step commands in this README use **DGX-1** defaults (`nvidia-dgx`, `
 - `src/sweep.py` : simple grid runner reading `configs/grid.json`
 - `slurm/dgx1/` : DGX-1 job scripts
 - `slurm/dgxh100/` : DGX-H100 job scripts
-- `scripts/` : small helper scripts
+- `scripts/` : helper scripts (preflight, sanity checks, stage-in/out)
 
 ## Cluster reference docs
 - DGX-1 (`nvidia-dgx`): [`docs/serc-dgx1.md`](docs/serc-dgx1.md)
@@ -101,6 +101,11 @@ docker build -f Dockerfile.modern \
 Verify the image exists:
 ```bash
 docker image list | grep dgx-demo
+```
+
+Run the login-node preflight before submitting jobs:
+```bash
+bash scripts/preflight_cluster.sh
 ```
 
 ---

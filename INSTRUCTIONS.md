@@ -92,6 +92,12 @@ Verify:
 docker image list | grep dgx-demo
 ```
 
+Run the login-node preflight:
+
+```bash
+bash scripts/preflight_cluster.sh
+```
+
 ---
 
 ## 2) Sanity test the container on a GPU (SLURM-only)
