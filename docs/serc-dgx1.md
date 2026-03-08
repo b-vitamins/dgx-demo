@@ -1,11 +1,17 @@
 # IISc SERC DGX-1 (`nvidia-dgx`) — reference notes
 
-> Last updated: 2025-12-19  
+> Last updated: 2026-03-08  
 > Source: IISc/SERC DGX-1 usage notes copied into this repo. Policies/queues can change; update this doc if you find drift.
 
 See also:
 - [`README.md`](../README.md) (quickstart workflow)
 - [`INSTRUCTIONS.md`](../INSTRUCTIONS.md) (end-to-end walkthrough)
+- Official pages checked in this audit:
+  - https://www.serc.iisc.ac.in/supercomputer/nvidia-dgx-1-cluster/
+  - https://www.serc.iisc.ac.in/supercomputer/nvidia-dgx-1-cluster/job-submission-system-in-dgx-1/
+  - https://www.serc.iisc.ac.in/supercomputer/nvidia-dgx-1-cluster/job-submission-system-in-dgx-1/queue-configuration/
+  - https://www.serc.iisc.ac.in/supercomputer/nvidia-dgx-1-cluster/job-submission-system-in-dgx-1/docker-usage-inside-dgx-1/
+  - https://www.serc.iisc.ac.in/supercomputer/nvidia-dgx-1-cluster/job-submission-system-in-dgx-1/docker-image-backup-procedure-in-dgx-1/
 
 ## Critical policies
 
@@ -125,6 +131,8 @@ The typical pattern is:
 1. SLURM allocates GPUs/CPU/RAM/time.
 2. Your `sbatch` script runs `docker run` bound to the SLURM allocation.
 3. You bind-mount your scratch directory into the container and run your code there.
+
+The published queue examples pass `--cpus=$SLURM_CPUS_PER_TASK` into `docker run`; the repo scripts now follow that pattern as well.
 
 This repo includes working examples under `slurm/dgx1/*.sbatch`. For a minimal skeleton:
 

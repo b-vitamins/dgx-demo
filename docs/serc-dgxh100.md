@@ -1,12 +1,18 @@
 # IISc SERC DGX-H100 (`dgxh100`) — reference notes
 
-> Last updated: 2026-01-15  
+> Last updated: 2026-03-08  
 > Source: IISc/SERC DGX-H100 usage notes copied into this repo. Policies/queues can change; update this doc if you find drift.
 
 See also:
 - [`README.md`](../README.md) (quickstart workflow)
 - [`INSTRUCTIONS.md`](../INSTRUCTIONS.md) (end-to-end walkthrough)
 - [`docs/dgxh100-adaptation.md`](dgxh100-adaptation.md) (how to adapt this repo to DGX-H100)
+- Official pages checked in this audit:
+  - https://www.serc.iisc.ac.in/supercomputer/nvidia-dgx-h100-cluster/
+  - https://www.serc.iisc.ac.in/job-submission-system-in-dgxh100/
+  - https://www.serc.iisc.ac.in/queue-configuration-dgxh100/
+  - https://www.serc.iisc.ac.in/docker-usage-inside-dgxh100/
+  - https://www.serc.iisc.ac.in/supercomputer/nvidia-dgx-h100-cluster/job-submission-system-in-dgxh100/docker-image-backup-procedure-in-dgxh100/
 
 ## Critical policies
 
@@ -119,6 +125,8 @@ The typical pattern is:
 1. SLURM allocates GPUs/CPU/RAM/time.
 2. Your `sbatch` script runs `docker run` bound to the SLURM allocation.
 3. You bind-mount your `/raid/<user>` directory into the container and run your code there.
+
+The published queue examples pass `--cpus=$SLURM_CPUS_PER_TASK` into `docker run`; the repo scripts now follow that pattern as well.
 
 Minimal skeleton:
 

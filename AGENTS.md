@@ -7,6 +7,7 @@
 - `docs/`: cluster reference and guides.
   - `docs/serc-dgx1.md`, `docs/serc-dgxh100.md`: SERC policies, storage, queues, access.
   - `docs/dgxh100-adaptation.md`: how to run this repo on DGX-H100.
+  - `docs/workflow-coverage.md`: supported workflows and repo scope boundaries.
   - `docs/troubleshooting.md`: common failure modes and fixes.
 - `src/`: Python package (training loop, dataset/model, sweep + aggregation).
 - `slurm/dgx1/`, `slurm/dgxh100/`: cluster-specific `sbatch` scripts.
@@ -17,6 +18,8 @@
 
 - Build container (recommended path):  
   `docker build -f Dockerfile.modern --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg USERNAME=$USER -t $USER/dgx-demo:torch .`
+- Build container (DGX-H100 path):  
+  `docker build -f Dockerfile.dgxh100 --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg USERNAME=$USER -t $USER/dgx-demo:torch .`
 - Basic Python sanity (no GPU required):  
   `python3 -m py_compile src/*.py`
 - Cluster smoke test (DGX-1): `sbatch slurm/dgx1/00_test_container_1gpu.sbatch`  

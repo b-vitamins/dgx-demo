@@ -7,6 +7,13 @@ This project keeps the ML workload simple and focuses on the operational pattern
 - single-GPU, multi-GPU DDP, and hyperparameter sweeps
 - realistic data handling patterns (stage-in/out)
 
+What it does not try to be:
+- a model zoo
+- a multi-node distributed training stack
+- a turn-key tensor/model-parallel training framework
+
+For a direct map of supported and unsupported workflows, see [`docs/workflow-coverage.md`](docs/workflow-coverage.md).
+
 Jobs on IISc SERC DGX clusters follow this model:
 - **SLURM allocates resources** (GPUs/CPU/RAM/time)
 - **Docker provides your environment**
@@ -18,8 +25,9 @@ Jobs on IISc SERC DGX clusters follow this model:
    - DGX-H100 (`dgxh100`): [`docs/serc-dgxh100.md`](docs/serc-dgxh100.md)
 2. Run the “first job” workflow in this README (sanity test → 1-GPU training → stage results out).
 3. Read [`INSTRUCTIONS.md`](INSTRUCTIONS.md) for the full end-to-end walkthrough (DDP, sweeps, data staging, backups).
-4. Skim [`docs/hpc-patterns.md`](docs/hpc-patterns.md) for the reasoning behind the patterns used here.
-5. If something fails, start with [`docs/troubleshooting.md`](docs/troubleshooting.md).
+4. Check [`docs/workflow-coverage.md`](docs/workflow-coverage.md) to see what the repo covers and where it stops.
+5. Skim [`docs/hpc-patterns.md`](docs/hpc-patterns.md) for the reasoning behind the patterns used here.
+6. If something fails, start with [`docs/troubleshooting.md`](docs/troubleshooting.md).
 
 ## Non-negotiable policies (SERC)
 - Run compute via **SLURM only** (jobs run outside SLURM may lead to account action).
@@ -30,13 +38,13 @@ Jobs on IISc SERC DGX clusters follow this model:
 
 The step-by-step commands in this README use **DGX-1** defaults (`nvidia-dgx`, `/localscratch`). If you are running on **DGX-H100** (`dgxh100`, `/raid`), start with:
 - [`docs/dgxh100-adaptation.md`](docs/dgxh100-adaptation.md)
-- `slurm/dgx1/` (DGX-1 scripts)
 - `slurm/dgxh100/` (adapted example `sbatch` scripts)
 
 ---
 
 ## Project layout
 - `Dockerfile.modern` : recommended base (pytorch/pytorch + cuda11.8)
+- `Dockerfile.dgxh100` : DGX-H100 build path (published CUDA 12.2 base + PyTorch CUDA wheels)
 - `Dockerfile.compat` : older CUDA 11.0.3 base + older PyTorch wheels (use if needed)
 - `src/train.py` : training loop + checkpointing + SIGUSR1/SIGTERM handling + optional DDP via torchrun
 - `src/sweep.py` : simple grid runner reading `configs/grid.json`
@@ -83,20 +91,33 @@ Option B: if you have it already on DGX, move/copy into `/localscratch/$USER/dgx
 ---
 
 ## 1) Build your Docker image (once, then reuse)
-Inside `/localscratch/$USER/dgx-demo`:
+Inside your scratch checkout:
+
+- DGX-1: `/localscratch/$USER/dgx-demo`
+- DGX-H100: `/raid/$USER/dgx-demo`
+
 ```bash
 cd /localscratch/$USER/dgx-demo
 
-# Build modern image (recommended)
+# Build DGX-1 image (recommended)
 docker build -f Dockerfile.modern \
   --build-arg UID=$(id -u) \
   --build-arg GID=$(id -g) \
   --build-arg USERNAME=$USER \
   -t $USER/dgx-demo:torch .
 
-# If the modern one fails, try compatibility mode:
+# DGX-H100 users should prefer the dedicated CUDA 12 path:
+# docker build -f Dockerfile.dgxh100 \
+#   --build-arg UID=$(id -u) \
+#   --build-arg GID=$(id -g) \
+#   --build-arg USERNAME=$USER \
+#   -t $USER/dgx-demo:torch .
+
+# If the DGX-1 modern image fails, try compatibility mode:
 # docker build -f Dockerfile.compat ... -t $USER/dgx-demo:torch .
 ```
+
+On DGX-H100, replace `/localscratch/$USER/dgx-demo` with `/raid/$USER/dgx-demo`.
 
 Verify the image exists:
 ```bash

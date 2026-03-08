@@ -19,7 +19,7 @@ This repo’s `slurm/dgx1/*.sbatch` scripts are written for DGX-1 conventions (`
    ```
 
 3. Build a container image:
-   - Use `Dockerfile.modern`, but consider switching the `FROM pytorch/pytorch:...` tag to a CUDA 12 variant.
+   - Use `Dockerfile.dgxh100` for the published CUDA 12.2 base path.
    - Keep the UID/GID build args so file permissions work correctly on bind mounts.
 
 4. Verify available partitions:

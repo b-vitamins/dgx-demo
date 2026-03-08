@@ -6,6 +6,7 @@ This walkthrough is written for DGX-1 (`nvidia-dgx`) by default. If you are usin
 - [`docs/serc-dgxh100.md`](docs/serc-dgxh100.md)
 - [`docs/serc-dgx1.md`](docs/serc-dgx1.md)
 - [`docs/dgxh100-adaptation.md`](docs/dgxh100-adaptation.md) (how to adapt this repo, including `slurm/dgxh100/` examples)
+- [`docs/workflow-coverage.md`](docs/workflow-coverage.md) (what this repo covers and what it does not)
 
 ---
 
@@ -62,9 +63,12 @@ cd dgx-demo
 
 ## 1) Build the Docker image
 
-From inside `/localscratch/$USER/dgx-demo`:
+From inside your scratch checkout:
 
-### Recommended (modern) image
+- DGX-1: `/localscratch/$USER/dgx-demo`
+- DGX-H100: `/raid/$USER/dgx-demo`
+
+### DGX-1 image
 
 ```bash
 docker build -f Dockerfile.modern \
@@ -74,7 +78,19 @@ docker build -f Dockerfile.modern \
   -t $USER/dgx-demo:torch .
 ```
 
-### Compatibility fallback (CUDA 11.0.3 base)
+### DGX-H100 image
+
+This path follows SERC's published CUDA 12.2 Docker baseline for DGX-H100:
+
+```bash
+docker build -f Dockerfile.dgxh100 \
+  --build-arg UID=$(id -u) \
+  --build-arg GID=$(id -g) \
+  --build-arg USERNAME=$USER \
+  -t $USER/dgx-demo:torch .
+```
+
+### DGX-1 compatibility fallback (CUDA 11.0.3 base)
 
 If the modern image fails due to a driver/toolchain mismatch, try:
 
@@ -263,4 +279,5 @@ docker save -o /localscratch/$USER/dgx-demo_image.tar $USER/dgx-demo:torch
 ## Next reading
 
 - [`docs/README.md`](docs/README.md) (docs index)
+- [`docs/workflow-coverage.md`](docs/workflow-coverage.md) (supported vs unsupported workflows)
 - [`docs/hpc-patterns.md`](docs/hpc-patterns.md) (design rationale)
