@@ -1,0 +1,76 @@
+#!/bin/bash
+#SBATCH --job-name=dgxh100_demo_fsdp2
+#SBATCH --partition=q_1day-2G
+#SBATCH --gres=gpu:2
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=12
+#SBATCH --mem=64G
+#SBATCH --time=12:00:00
+#SBATCH --signal=B:USR1@600
+#SBATCH --output=%x_%j.out
+#SBATCH --error=%x_%j.err
+
+set -euo pipefail
+
+USER_NAME="${USER}"
+SCRATCH="/raid/${USER_NAME}"
+SCRATCH_CONT="/workspace${SCRATCH}"
+PROJ_HOST="${SCRATCH}/dgx-demo"
+PROJ_CONT="${SCRATCH_CONT}/dgx-demo"
+RUNS_HOST="${PROJ_HOST}/runs"
+RUNS_CONT="${PROJ_CONT}/runs"
+IMAGE="${USER_NAME}/dgx-demo:torch"
+
+OUTDIR_HOST="${RUNS_HOST}/${SLURM_JOB_ID}"
+OUTDIR_CONT="${RUNS_CONT}/${SLURM_JOB_ID}"
+mkdir -p "${OUTDIR_HOST}"
+
+echo "[slurm] JobID=$SLURM_JOB_ID Node=$(hostname) GPUs=$CUDA_VISIBLE_DEVICES"
+date
+
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-12}"
+export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-12}"
+export NCCL_DEBUG=warn
+export PYTHONUNBUFFERED=1
+
+docker run --rm \
+  -t --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
+  --cpus="${SLURM_CPUS_PER_TASK:-12}" \
+  --name "${SLURM_JOB_ID}" \
+  --ipc=host --shm-size=40G \
+  --ulimit memlock=-1 --ulimit stack=67108864 \
+  --user "$(id -u ${USER_NAME}):$(id -g ${USER_NAME})" \
+  -v "${SCRATCH}:${SCRATCH_CONT}" \
+  -w "${PROJ_CONT}" \
+  -e "OMP_NUM_THREADS=${OMP_NUM_THREADS}" \
+  -e "MKL_NUM_THREADS=${MKL_NUM_THREADS}" \
+  -e "NCCL_DEBUG=${NCCL_DEBUG}" \
+  -e "PYTHONUNBUFFERED=1" \
+  "${IMAGE}" \
+  bash -lc '
+set -euo pipefail
+
+echo "[container] starting torchrun FSDP"
+torchrun --standalone --nproc_per_node=2 -m src.train \
+  --outdir "'"${OUTDIR_CONT}"'" \
+  --run_name hello_fsdp2 \
+  --strategy fsdp \
+  --max_steps 200000 \
+  --batch_size 128 \
+  --lr 1e-3 \
+  --wd 1e-4 \
+  --dropout 0.1 \
+  --dataset_size 400000 \
+  --num_workers 4 \
+  --checkpoint_every 500 \
+  --log_every 50 \
+  --amp \
+  --resume auto &
+TR_PID=$!
+
+trap "echo \"[container] got SIGUSR1 -> forwarding\"; kill -USR1 -$TR_PID 2>/dev/null || true" USR1
+trap "echo \"[container] got SIGTERM -> forwarding\"; kill -TERM -$TR_PID 2>/dev/null || true" TERM
+
+wait $TR_PID
+echo "[container] torchrun finished"
+'

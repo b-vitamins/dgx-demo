@@ -11,6 +11,7 @@ The two folders mirror the same basic workflows where possible:
 - `01_*`: 1-GPU training with signal handling
 - `02_*`: chained continuation run
 - `03_*`: single-node DDP run
+- `04_*`: single-node FSDP run
 - `10_*`: SLURM array sweep
 - `11_*`: packed multi-GPU sweep
 - `chain_submit.sh`: helper for chained runs

@@ -1,7 +1,6 @@
 import argparse
 import os
 import signal
-import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -10,6 +9,11 @@ from typing import Optional
 import numpy as np
 import torch
 import torch.distributed as dist
+from torch.distributed.fsdp import (
+    FullStateDictConfig,
+    FullyShardedDataParallel as FSDP,
+    StateDictType,
+)
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -35,35 +39,35 @@ def install_signal_handlers():
     signal.signal(signal.SIGTERM, _handle_signal)
 
 # -----------------------
-# DDP helpers
+# Distributed helpers
 # -----------------------
-def ddp_is_active() -> bool:
+def dist_is_active() -> bool:
     return int(os.environ.get("WORLD_SIZE", "1")) > 1
 
-def ddp_rank() -> int:
+def dist_rank() -> int:
     return int(os.environ.get("RANK", "0"))
 
-def ddp_local_rank() -> int:
+def dist_local_rank() -> int:
     return int(os.environ.get("LOCAL_RANK", "0"))
 
-def ddp_world_size() -> int:
+def dist_world_size() -> int:
     return int(os.environ.get("WORLD_SIZE", "1"))
 
-def ddp_setup():
-    if not ddp_is_active():
+def dist_setup():
+    if not dist_is_active():
         return
-    torch.cuda.set_device(ddp_local_rank())
+    torch.cuda.set_device(dist_local_rank())
     dist.init_process_group(backend="nccl", init_method="env://")
 
-def ddp_cleanup():
-    if ddp_is_active():
+def dist_cleanup():
+    if dist_is_active():
         dist.destroy_process_group()
 
 def is_main_process() -> bool:
-    return ddp_rank() == 0
+    return dist_rank() == 0
 
 def barrier():
-    if ddp_is_active():
+    if dist_is_active():
         dist.barrier()
 
 # -----------------------
@@ -73,6 +77,7 @@ def barrier():
 class TrainConfig:
     outdir: str
     run_name: str
+    strategy: str
     max_steps: int
     batch_size: int
     lr: float
@@ -92,24 +97,69 @@ def set_seeds(seed: int):
     torch.manual_seed(seed)
     np.random.seed(seed % (2**32 - 1))
 
-def save_checkpoint(ckpt_path: Path, model, optimizer, scaler, step: int, epoch: int, cfg: TrainConfig):
+def resolve_strategy(requested: str) -> str:
+    if requested == "auto":
+        return "ddp" if dist_is_active() else "single"
+
+    if requested == "single" and dist_is_active():
+        raise ValueError("--strategy single is incompatible with WORLD_SIZE > 1")
+
+    if requested in {"ddp", "fsdp"} and not dist_is_active():
+        raise ValueError(f"--strategy {requested} requires torchrun / WORLD_SIZE > 1")
+
+    return requested
+
+def checkpoint_model_state(model, strategy: str):
+    if strategy != "fsdp":
+        return model.state_dict()
+
+    full_cfg = FullStateDictConfig(offload_to_cpu=True, rank0_only=False)
+    with FSDP.state_dict_type(model, StateDictType.FULL_STATE_DICT, full_cfg):
+        return model.state_dict()
+
+def checkpoint_optimizer_state(model, optimizer, strategy: str):
+    if strategy != "fsdp":
+        return optimizer.state_dict()
+
+    return FSDP.full_optim_state_dict(model, optimizer, rank0_only=True)
+
+def load_model_state(model, state_dict, strategy: str):
+    if strategy != "fsdp":
+        model.load_state_dict(state_dict)
+        return
+
+    full_cfg = FullStateDictConfig(offload_to_cpu=True, rank0_only=False)
+    with FSDP.state_dict_type(model, StateDictType.FULL_STATE_DICT, full_cfg):
+        model.load_state_dict(state_dict)
+
+def load_optimizer_state(model, optimizer, state_dict, strategy: str):
+    if strategy != "fsdp":
+        optimizer.load_state_dict(state_dict)
+        return
+
+    full_osd = state_dict if is_main_process() else None
+    sharded_osd = FSDP.scatter_full_optim_state_dict(full_osd, model, optim=optimizer)
+    optimizer.load_state_dict(sharded_osd)
+
+def save_checkpoint(ckpt_path: Path, model, optimizer, scaler, step: int, epoch: int, cfg: TrainConfig, strategy: str):
     ckpt = {
         "step": step,
         "epoch": epoch,
-        "model": model.state_dict(),
-        "optimizer": optimizer.state_dict(),
+        "model": checkpoint_model_state(model, strategy),
+        "optimizer": checkpoint_optimizer_state(model, optimizer, strategy),
         "scaler": scaler.state_dict() if scaler is not None else None,
         "cfg": asdict(cfg),
         "time": now_iso(),
     }
-    tmp = ckpt_path.with_suffix(".tmp")
-    torch.save(ckpt, tmp)
-    tmp.replace(ckpt_path)
+    if is_main_process():
+        tmp = ckpt_path.with_suffix(".tmp")
+        torch.save(ckpt, tmp)
+        tmp.replace(ckpt_path)
 
-def load_checkpoint(path: Path, model, optimizer, scaler):
+def load_checkpoint(path: Path, model, optimizer, scaler, strategy: str):
     ckpt = torch.load(path, map_location="cpu")
-    model.load_state_dict(ckpt["model"])
-    optimizer.load_state_dict(ckpt["optimizer"])
+    load_model_state(model, ckpt["model"], strategy)
+    load_optimizer_state(model, optimizer, ckpt["optimizer"], strategy)
     if scaler is not None and ckpt.get("scaler") is not None:
         scaler.load_state_dict(ckpt["scaler"])
     return int(ckpt.get("step", 0)), int(ckpt.get("epoch", 0))
@@ -118,6 +168,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--outdir", required=True)
     parser.add_argument("--run_name", default="demo")
+    parser.add_argument("--strategy", default="auto", choices=["auto", "single", "ddp", "fsdp"])
     parser.add_argument("--max_steps", type=int, default=2000)
     parser.add_argument("--batch_size", type=int, default=256, help="Per-process batch size (DDP global batch = batch_size * world_size).")
     parser.add_argument("--lr", type=float, default=1e-3)
@@ -137,15 +188,19 @@ def main():
     cfg = TrainConfig(**vars(args))
 
     install_signal_handlers()
-    ddp_setup()
+    dist_setup()
 
-    rank = ddp_rank()
-    world = ddp_world_size()
-    local_rank = ddp_local_rank()
+    rank = dist_rank()
+    world = dist_world_size()
+    local_rank = dist_local_rank()
+    strategy = resolve_strategy(cfg.strategy)
+    cfg.strategy = strategy
 
     device = torch.device("cuda", local_rank) if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.cuda.set_device(local_rank)
+    if strategy == "fsdp" and not torch.cuda.is_available():
+        raise ValueError("FSDP demo requires CUDA")
 
     outdir = ensure_dir(cfg.outdir)
     ckpt_dir = ensure_dir(outdir / "checkpoints")
@@ -155,9 +210,11 @@ def main():
     if is_main_process():
         atomic_write_json(outdir / "config.json", asdict(cfg))
 
+    set_seeds(cfg.seed)
+
     # Dataset & loader
     dataset = SyntheticImageDataset(size=cfg.dataset_size, image_size=cfg.image_size, num_classes=cfg.num_classes, seed=cfg.seed)
-    sampler = DistributedSampler(dataset, num_replicas=world, rank=rank, shuffle=True) if ddp_is_active() else None
+    sampler = DistributedSampler(dataset, num_replicas=world, rank=rank, shuffle=True) if dist_is_active() else None
     loader = DataLoader(
         dataset,
         batch_size=cfg.batch_size,
@@ -171,8 +228,10 @@ def main():
 
     # Model
     model = TinyCNN(num_classes=cfg.num_classes, dropout=cfg.dropout).to(device)
-    if ddp_is_active():
+    if strategy == "ddp":
         model = DDP(model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=False)
+    elif strategy == "fsdp":
+        model = FSDP(model, device_id=local_rank, sync_module_states=True, use_orig_params=True)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.wd)
     scaler = torch.cuda.amp.GradScaler(enabled=cfg.amp and torch.cuda.is_available())
@@ -188,10 +247,9 @@ def main():
             resume_path = Path(cfg.resume)
 
         if resume_path is not None and resume_path.exists():
-            # Only main loads first, then broadcast weights via DDP; but simplest is load on all ranks.
-            step, start_epoch = load_checkpoint(resume_path, model, optimizer, scaler)
+            step, start_epoch = load_checkpoint(resume_path, model, optimizer, scaler, strategy)
             if is_main_process():
-                print(f"[resume] loaded {resume_path} (step={step}, epoch={start_epoch})")
+                print(f"[resume] loaded {resume_path} (step={step}, epoch={start_epoch}, strategy={strategy})")
         elif is_main_process():
             print("[resume] no checkpoint found; starting fresh")
 
@@ -211,12 +269,12 @@ def main():
 
             if _SHOULD_EXIT:
                 # Time-limit or termination signal received: checkpoint and exit cleanly.
+                ckpt_last = ckpt_dir / "ckpt_last.pt"
+                save_checkpoint(ckpt_last, model, optimizer, scaler, step=step, epoch=epoch, cfg=cfg, strategy=strategy)
                 if is_main_process():
-                    ckpt_last = ckpt_dir / "ckpt_last.pt"
-                    save_checkpoint(ckpt_last, model, optimizer, scaler, step=step, epoch=epoch, cfg=cfg)
                     print(f"[signal] received; saved {ckpt_last} and exiting at step={step}")
                 barrier()
-                ddp_cleanup()
+                dist_cleanup()
                 return
 
             xb = xb.to(device, non_blocking=True)
@@ -240,17 +298,17 @@ def main():
                     "step": step,
                     "epoch": epoch,
                     "loss": float(loss.detach().cpu().item()),
+                    "strategy": strategy,
                     "world_size": world,
                     "global_batch": cfg.batch_size * world,
                 })
 
             # Checkpointing
             if (step > 0) and (step % cfg.checkpoint_every == 0):
-                if is_main_process():
-                    ckpt_step = ckpt_dir / f"ckpt_step_{step}.pt"
-                    ckpt_last = ckpt_dir / "ckpt_last.pt"
-                    save_checkpoint(ckpt_step, model, optimizer, scaler, step=step, epoch=epoch, cfg=cfg)
-                    save_checkpoint(ckpt_last, model, optimizer, scaler, step=step, epoch=epoch, cfg=cfg)
+                ckpt_step = ckpt_dir / f"ckpt_step_{step}.pt"
+                ckpt_last = ckpt_dir / "ckpt_last.pt"
+                save_checkpoint(ckpt_step, model, optimizer, scaler, step=step, epoch=epoch, cfg=cfg, strategy=strategy)
+                save_checkpoint(ckpt_last, model, optimizer, scaler, step=step, epoch=epoch, cfg=cfg, strategy=strategy)
                 barrier()
 
             step += 1
@@ -260,20 +318,21 @@ def main():
         epoch += 1
 
     # Final save
+    ckpt_last = ckpt_dir / "ckpt_last.pt"
+    save_checkpoint(ckpt_last, model, optimizer, scaler, step=step, epoch=epoch, cfg=cfg, strategy=strategy)
     if is_main_process():
-        ckpt_last = ckpt_dir / "ckpt_last.pt"
-        save_checkpoint(ckpt_last, model, optimizer, scaler, step=step, epoch=epoch, cfg=cfg)
         atomic_write_json(summary_path, {
             "time": now_iso(),
             "final_step": step,
             "final_epoch": epoch,
             "outdir": str(outdir),
+            "strategy": strategy,
             "world_size": world,
         })
         print(f"[done] saved final checkpoint to {ckpt_last}")
 
     barrier()
-    ddp_cleanup()
+    dist_cleanup()
 
 if __name__ == "__main__":
     main()
