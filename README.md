@@ -4,7 +4,7 @@ This project keeps the ML workload simple and focuses on the operational pattern
 - SLURM wall-clock time limits
 - clean shutdown via signal handling + checkpointing (Option C)
 - chained multi-segment runs via SLURM dependencies (Option B)
-- single-GPU, multi-GPU DDP, and hyperparameter sweeps
+- single-GPU, single-node DDP/FSDP, and hyperparameter sweeps
 - realistic data handling patterns (stage-in/out)
 
 What it does not try to be:
@@ -26,8 +26,9 @@ Jobs on IISc SERC DGX clusters follow this model:
 2. Run the “first job” workflow in this README (sanity test → 1-GPU training → stage results out).
 3. Read [`INSTRUCTIONS.md`](INSTRUCTIONS.md) for the full end-to-end walkthrough (DDP, sweeps, data staging, backups).
 4. Check [`docs/workflow-coverage.md`](docs/workflow-coverage.md) to see what the repo covers and where it stops.
-5. Skim [`docs/hpc-patterns.md`](docs/hpc-patterns.md) for the reasoning behind the patterns used here.
-6. If something fails, start with [`docs/troubleshooting.md`](docs/troubleshooting.md).
+5. Read [`docs/ddp-vs-fsdp.md`](docs/ddp-vs-fsdp.md) before choosing a multi-GPU path.
+6. Skim [`docs/hpc-patterns.md`](docs/hpc-patterns.md) for the reasoning behind the patterns used here.
+7. If something fails, start with [`docs/troubleshooting.md`](docs/troubleshooting.md).
 
 ## Non-negotiable policies (SERC)
 - Run compute via **SLURM only** (jobs run outside SLURM may lead to account action).

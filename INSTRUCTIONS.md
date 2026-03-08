@@ -7,6 +7,7 @@ This walkthrough is written for DGX-1 (`nvidia-dgx`) by default. If you are usin
 - [`docs/serc-dgx1.md`](docs/serc-dgx1.md)
 - [`docs/dgxh100-adaptation.md`](docs/dgxh100-adaptation.md) (how to adapt this repo, including `slurm/dgxh100/` examples)
 - [`docs/workflow-coverage.md`](docs/workflow-coverage.md) (what this repo covers and what it does not)
+- [`docs/ddp-vs-fsdp.md`](docs/ddp-vs-fsdp.md) (when to use each single-node distributed pattern)
 
 ---
 
@@ -280,4 +281,5 @@ docker save -o /localscratch/$USER/dgx-demo_image.tar $USER/dgx-demo:torch
 
 - [`docs/README.md`](docs/README.md) (docs index)
 - [`docs/workflow-coverage.md`](docs/workflow-coverage.md) (supported vs unsupported workflows)
+- [`docs/ddp-vs-fsdp.md`](docs/ddp-vs-fsdp.md) (single-node distributed tradeoffs)
 - [`docs/hpc-patterns.md`](docs/hpc-patterns.md) (design rationale)
