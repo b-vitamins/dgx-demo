@@ -37,6 +37,7 @@ export PYTHONUNBUFFERED=1
 # to the torchrun process group (and therefore to all worker processes).
 docker run --rm \
   -t --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
+  --cpus="${SLURM_CPUS_PER_TASK:-12}" \
   --name "${SLURM_JOB_ID}" \
   --ipc=host --shm-size=40G \
   --ulimit memlock=-1 --ulimit stack=67108864 \

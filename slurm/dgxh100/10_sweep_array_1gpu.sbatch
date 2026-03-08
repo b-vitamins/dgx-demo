@@ -36,6 +36,7 @@ export PYTHONUNBUFFERED=1
 
 docker run -t --rm \
   --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
+  --cpus="${SLURM_CPUS_PER_TASK:-6}" \
   --name "${SLURM_JOB_ID}" \
   --ipc=host --shm-size=20G \
   --ulimit memlock=-1 --ulimit stack=67108864 \

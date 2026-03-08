@@ -23,6 +23,7 @@ date
 
 docker run -t --rm \
   --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
+  --cpus="${SLURM_CPUS_PER_TASK:-2}" \
   --name "${SLURM_JOB_ID}" \
   --ipc=host --shm-size=2G \
   --user "$(id -u ${USER_NAME}):$(id -g ${USER_NAME})" \

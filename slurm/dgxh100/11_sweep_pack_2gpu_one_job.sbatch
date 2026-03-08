@@ -36,6 +36,7 @@ export PYTHONUNBUFFERED=1
 # One container, 2 concurrent 1-GPU trials. We also forward SLURM signals to all child processes.
 docker run --rm \
   -t --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
+  --cpus="${SLURM_CPUS_PER_TASK:-12}" \
   --name "${SLURM_JOB_ID}" \
   --ipc=host --shm-size=40G \
   --ulimit memlock=-1 --ulimit stack=67108864 \
@@ -77,7 +78,7 @@ trap forward_usr1 USR1
 trap forward_term TERM
 
 # Launch 2 trials at once.
-# IMPORTANT: batch_size and num_workers are per trial. Don\'t oversubscribe CPU/RAM.
+# IMPORTANT: batch_size and num_workers are per trial. Don'\''t oversubscribe CPU/RAM.
 for i in 0 1; do
   echo "[container] launching trial $i on GPU $i"
   CUDA_VISIBLE_DEVICES=$i python -m src.sweep \

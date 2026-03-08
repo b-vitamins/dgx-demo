@@ -36,6 +36,7 @@ export PYTHONUNBUFFERED=1
 # One container, 4 concurrent 1-GPU trials. We also forward SLURM signals to all child processes.
 docker run --rm \
   -t --gpus '"device='"${CUDA_VISIBLE_DEVICES}"'"' \
+  --cpus="${SLURM_CPUS_PER_TASK:-16}" \
   --name "${SLURM_JOB_ID}" \
   --ipc=host --shm-size=40G \
   --ulimit memlock=-1 --ulimit stack=67108864 \
